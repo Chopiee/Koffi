@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { PanelLeft } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
+import { OverviewView } from './components/OverviewView';
 import { PurchaseView } from './components/PurchaseView';
 import { SalesView } from './components/SalesView';
 import { CostView } from './components/CostView';
@@ -13,7 +14,12 @@ import { FeedbackModal } from './components/FeedbackModal';
 import { PurchaseModal } from './components/PurchaseModal';
 import { LinearModal } from './components/LinearModal';
 import { SearchModal } from './components/SearchModal';
-import { SidebarTab, TaskItem, CalendarEvent } from './types';
+import { SidebarTab, TaskItem, CalendarEvent, PurchaseTransaction } from './types';
+import {
+  initialPurchaseTransactions,
+  initialSalesTransactions,
+  initialCostTransactions,
+} from './data/initialTransactions';
 export default function App() {
   const [currentTab, setCurrentTab] = useState<SidebarTab>('purchase');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -23,8 +29,115 @@ export default function App() {
   const [isPurchaseOpen, setIsPurchaseOpen] = useState(false);
   const [isLinearOpen, setIsLinearOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Purchase transactions data state
+  const [purchaseTransactions, setPurchaseTransactions] = useState<PurchaseTransaction[]>(initialPurchaseTransactions);
+
+  // Sales transactions data state
+  const [salesTransactions, setSalesTransactions] = useState<PurchaseTransaction[]>(initialSalesTransactions);
+
+  // Cost transactions data state
+  const [costTransactions, setCostTransactions] = useState<PurchaseTransaction[]>(initialCostTransactions);
+
+  const handleAddPurchaseTransaction = (newTxData: Omit<PurchaseTransaction, 'id' | 'createdAt'>) => {
+    const newTx: PurchaseTransaction = {
+      ...newTxData,
+      id: `tx-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    setPurchaseTransactions((prev) => [newTx, ...prev]);
+  };
+
+  const handleDeletePurchaseTransaction = (id: string) => {
+    setPurchaseTransactions((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const handleTogglePurchaseStatus = (id: string) => {
+    setPurchaseTransactions((prev) =>
+      prev.map((t) => {
+        if (t.id !== id) return t;
+        let nextStatus: string = 'Paid';
+        if (t.status === 'Paid') nextStatus = 'Partially Paid';
+        else if (t.status === 'Partially Paid') nextStatus = 'Unpaid';
+        else nextStatus = 'Paid';
+        return { ...t, status: nextStatus, tag: nextStatus };
+      })
+    );
+  };
+
+  const handleUpdatePurchaseTransaction = (updatedTx: PurchaseTransaction) => {
+    setPurchaseTransactions((prev) =>
+      prev.map((t) => (t.id === updatedTx.id ? updatedTx : t))
+    );
+  };
+
+  const handleAddSalesTransaction = (newTxData: Omit<PurchaseTransaction, 'id' | 'createdAt'>) => {
+    const newTx: PurchaseTransaction = {
+      ...newTxData,
+      id: `sl-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    setSalesTransactions((prev) => [newTx, ...prev]);
+  };
+
+  const handleDeleteSalesTransaction = (id: string) => {
+    setSalesTransactions((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const handleToggleSalesStatus = (id: string) => {
+    setSalesTransactions((prev) =>
+      prev.map((t) => {
+        if (t.id !== id) return t;
+        let nextStatus: string = 'Paid';
+        if (t.status === 'Paid') nextStatus = 'Partially Paid';
+        else if (t.status === 'Partially Paid') nextStatus = 'Unpaid';
+        else nextStatus = 'Paid';
+        return { ...t, status: nextStatus, tag: nextStatus };
+      })
+    );
+  };
+
+  const handleUpdateSalesTransaction = (updatedTx: PurchaseTransaction) => {
+    setSalesTransactions((prev) =>
+      prev.map((t) => (t.id === updatedTx.id ? updatedTx : t))
+    );
+  };
+
+  const handleAddCostTransaction = (newTxData: Omit<PurchaseTransaction, 'id' | 'createdAt'>) => {
+    const newTx: PurchaseTransaction = {
+      ...newTxData,
+      id: `cst-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    setCostTransactions((prev) => [newTx, ...prev]);
+  };
+
+  const handleDeleteCostTransaction = (id: string) => {
+    setCostTransactions((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const handleToggleCostStatus = (id: string) => {
+    setCostTransactions((prev) =>
+      prev.map((t) => {
+        if (t.id !== id) return t;
+        let nextStatus: string = 'Paid';
+        if (t.status === 'Paid') nextStatus = 'Partially Paid';
+        else if (t.status === 'Partially Paid') nextStatus = 'Unpaid';
+        else nextStatus = 'Paid';
+        return { ...t, status: nextStatus, tag: nextStatus };
+      })
+    );
+  };
+
+  const handleUpdateCostTransaction = (updatedTx: PurchaseTransaction) => {
+    setCostTransactions((prev) =>
+      prev.map((t) => (t.id === updatedTx.id ? updatedTx : t))
+    );
+  };
+
   // App data state - starts with empty tasks to match screenshot exactly
   const [tasks, setTasks] = useState<TaskItem[]>([]);
+
   const [isCalendarConnected, setIsCalendarConnected] = useState(false);
   const sampleEvents: CalendarEvent[] = [
     {
@@ -95,30 +208,35 @@ export default function App() {
               <PanelLeft size={15.5} strokeWidth={1.75} />
             </button>
           )}
+        {currentTab === 'overview' && <OverviewView />}
         {currentTab === 'purchase' && (
           <PurchaseView
-            tasks={tasks}
-            calendarEvents={sampleEvents}
-            isCalendarConnected={isCalendarConnected}
-            onConnectCalendar={() => setIsCalendarConnected(true)}
-            onDisconnectCalendar={() => setIsCalendarConnected(false)}
-            onToggleTask={handleToggleTask}
-            onDeleteTask={handleDeleteTask}
-            onOpenNewTask={() => setIsNewTaskOpen(true)}
+            transactions={purchaseTransactions}
+            onAddTransaction={handleAddPurchaseTransaction}
+            onDeleteTransaction={handleDeletePurchaseTransaction}
+            onToggleTransactionStatus={handleTogglePurchaseStatus}
+            onUpdateTransaction={handleUpdatePurchaseTransaction}
+            onNavigateTab={setCurrentTab}
           />
         )}
         {currentTab === 'sales' && (
           <SalesView
-            tasks={tasks}
-            onToggleTask={handleToggleTask}
-            onDeleteTask={handleDeleteTask}
+            transactions={salesTransactions}
+            onAddTransaction={handleAddSalesTransaction}
+            onDeleteTransaction={handleDeleteSalesTransaction}
+            onToggleTransactionStatus={handleToggleSalesStatus}
+            onUpdateTransaction={handleUpdateSalesTransaction}
+            onNavigateTab={setCurrentTab}
           />
         )}
         {currentTab === 'cost' && (
           <CostView
-            events={sampleEvents}
-            isCalendarConnected={isCalendarConnected}
-            onConnectCalendar={() => setIsCalendarConnected(true)}
+            transactions={costTransactions}
+            onAddTransaction={handleAddCostTransaction}
+            onDeleteTransaction={handleDeleteCostTransaction}
+            onToggleTransactionStatus={handleToggleCostStatus}
+            onUpdateTransaction={handleUpdateCostTransaction}
+            onNavigateTab={setCurrentTab}
           />
         )}
         {currentTab === 'accounting' && <AccountingView />}
